@@ -1,0 +1,77 @@
+MANUAL DE APLICACION - BATCH DE PASES
+=====================================
+
+1 - INSTALACION
+===============
+
+Prerrequisito: Se debe tener instalado Python en su versión 3.11 o superior.
+Sitio de descarga: https://www.python.org/
+
+Instalación de paquetes necesarios para la ejecución:
+Desde la terminal de comandos, ubicarse donde se encuentra el archivo requirements.txt
+    y ejecutar "pip install -r requirements.txt".
+
+
+2 - CONFIGURACION
+=================
+
+Para que la aplicación funcione correctamente se deberá configurar el archivo "config.ini",
+proporcionando la siguiente información sin comillas:
+
+URL_TOKEN = url del servicio de obtención del token
+USUARIO_TOKEN = usuario de servicio que consume el token
+PASS_TOKEN = contraseña del usuario de servicio que consume el token
+WSDL_PASE_EXPEDIENTE = wsdl del servicio generacionPaseExpediente
+WSDL_BLOQUEO_EXPEDIENTE = wsdl sel servicio bloqueoExpediente
+MOTIVO_PASE = motivo que se incluirá en los pases de expedientes
+CANTIDAD_PASES = cantidad máxima de expedientes que se ejecutará por corrida de la aplicación (ej: 200)
+
+3 - USO DE LA APLICACION
+========================
+
+1) Cargar los expedientes en la base de datos sqlite "data.db" dentro de la carpeta database.
+La base se compone de una sola tabla PASE y todos sus campos son requeridos:
+    - id: campo numerico que identifica el pase. Clave primaria de la tabla. 
+    - expediente: número GDEBA del expediente, en mayúsculas (Ej: EX-2023-1- -GDEBA-XXXXXX).
+    - estado_expediente: estado del expediente en GDEBA (Ej: Tramitación).
+    - usuario_origen: usuario GDEBA que realiza el pase, en mayúsculas (Ej: USUARIOX).
+    - reparticion_destino: código de repartición destino, en mayúsculas (Ej: REPARTX).
+    - sector_destino: código de sector destino, en mayúsculas (Ej: SECTORX).
+    - estado_pase: Debe ser "pendiente" (sin comillas).
+
+Los estados de expediente válidos son:
+- Iniciación
+- Tramitación
+- Subsanación
+- Comunicación
+- Ejecución
+
+La carga puede realizarse de dos maneras:
+a) Completando la información en el archivo excel carga.xlsx (el id y el estado_pase
+	se completan automáticamente), luego de guardarlo y cerrarlo.
+	ejecutar el script carga_db.py.
+	IMPORTANTE: 
+	- El script borra la tabla previo a realizar la carga por lo que la información
+		anterior se perderá.
+	- No modificar el nombre ni el orden de las columnas.
+
+b) Manual si se posee conocimientos de SQL utilizando algún software como DB Browser. 
+
+
+2) Desde la terminal, ubicarse donde se encuentra el script main.py y ejecutarlo con Python.
+Una barra de progreso indicará el estado del proceso. 
+El batch realizará el pase de los expedientes cuyo estado_pase sea pendiente, como máximo la 
+cantidad especificada en el archivo config.ini.
+IMPORTANTE: 
+	- NO cerrar la terminal mientras el batch procesa los pases de expedientes. 
+
+Si el pase se realiza correctamente, cambiará el estado a realizado, caso contrario cambiará
+el estado a error. En ambos casos, el resultado quedará asentado en el archivo proceso.log,
+que se encuentra en la carpeta logs.
+
+CONSIDERACIONES:
+- El batch NO reprocesa pases en estado_pase error. 
+- No será necesario volver a cargar los expedientes en la base de datos en la siguiente ejecución,
+    el batch tomará automáticamente los siguientes n expedientes cuyo estado_pase sea pendiente.
+- Cada pase requiere de 3 métodos (obtención del token, bloqueo de expediente y pase con desbloqueo) 
+que serán descontados de la cuota diaria permitida. 
